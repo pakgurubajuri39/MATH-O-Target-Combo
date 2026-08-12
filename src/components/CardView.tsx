@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '../types';
 import { getColorBgClass } from '../utils/cardUtils';
+import { motion } from 'motion/react';
 
 interface CardViewProps {
   card: Card;
@@ -36,16 +37,23 @@ export const CardView: React.FC<CardViewProps> = ({
   }[size];
 
   return (
-    <div
+    <motion.div
+      layoutId={card.id}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.5, opacity: 0 }}
+      whileHover={disabled ? undefined : { y: -5, scale: 1.05 }}
+      whileTap={disabled ? undefined : { scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
       onClick={disabled ? undefined : onClick}
       id={`card-${card.id}`}
-      className={`relative select-none border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden shadow-lg ${bgClass} ${sizeClasses} ${
+      className={`relative select-none border-2 cursor-pointer flex flex-col justify-between overflow-hidden shadow-lg ${bgClass} ${sizeClasses} ${
         isSelected
-          ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-slate-950 -translate-y-3 scale-105 z-10 shadow-2xl shadow-amber-500/20'
-          : 'hover:-translate-y-1.5 hover:shadow-xl'
+          ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-slate-950 -translate-y-3 z-10 shadow-2xl shadow-amber-500/20'
+          : ''
       } ${
         !isPlayable && !disabled
-          ? 'opacity-85 hover:opacity-100'
+          ? 'opacity-85'
           : ''
       } ${disabled ? 'cursor-not-allowed opacity-50 grayscale-30' : ''}`}
     >
@@ -144,7 +152,8 @@ export const CardView: React.FC<CardViewProps> = ({
           ✓
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
+
 

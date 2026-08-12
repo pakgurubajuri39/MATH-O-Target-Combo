@@ -24,6 +24,7 @@ import { HistoryLog } from './components/HistoryLog';
 import { GuruHintModal } from './components/GuruHintModal';
 import { PassAndPlayOverlay } from './components/PassAndPlayOverlay';
 import { PracticeSandbox } from './components/PracticeSandbox';
+import { TutorialModal } from './components/TutorialModal';
 import { Footer } from './components/Footer';
 
 import { ScoreboardModal } from './components/ScoreboardModal';
@@ -81,6 +82,7 @@ export default function App() {
   const [isScoreboardOpen, setIsScoreboardOpen] = useState<boolean>(false);
   const [isRoomMultiplayerOpen, setIsRoomMultiplayerOpen] = useState<boolean>(false);
   const [isGuruHintOpen, setIsGuruHintOpen] = useState<boolean>(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [guruHintText, setGuruHintText] = useState<string>('');
   const [isHintLoading, setIsHintLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
@@ -897,14 +899,24 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Additional Sandbox Practice Link */}
-              <button
-                onClick={() => setIsPracticeOpen(true)}
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 underline flex items-center gap-1 mx-auto cursor-pointer"
-              >
-                <Calculator className="w-4 h-4" />
-                <span>Buka Mode Latihan Combo Bebas</span>
-              </button>
+              {/* Additional Action Links */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
+                <button
+                  onClick={() => setIsTutorialOpen(true)}
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 rounded-full transition flex items-center gap-2 cursor-pointer"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Tutorial Cara Bermain</span>
+                </button>
+                
+                <button
+                  onClick={() => setIsPracticeOpen(true)}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-full transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Calculator className="w-4 h-4" />
+                  <span>Mode Latihan Combo Bebas</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1077,6 +1089,11 @@ export default function App() {
             activeTargetCard?.type === 'number' ? activeTargetCard.value! : 0
           }
           targetColor={activeTargetCard?.color || 'Merah'}
+        />
+
+        <TutorialModal
+          isOpen={isTutorialOpen}
+          onClose={() => setIsTutorialOpen(false)}
         />
 
         {isPassScreenOpen && (
