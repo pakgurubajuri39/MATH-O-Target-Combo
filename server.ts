@@ -156,7 +156,7 @@ app.post("/api/rooms/join", (req, res) => {
     return res.status(400).json({ error: "Kode Ruang dan Nama Pemain wajib diisi." });
   }
 
-  const cleanCode = roomCode.trim().toUpperCase();
+  const cleanCode = String(roomCode).trim().toUpperCase();
   const room = rooms[cleanCode];
 
   if (!room) {
