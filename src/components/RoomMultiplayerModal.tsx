@@ -105,10 +105,13 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
       });
 
       let data;
+      let textResponse = '';
       try {
-        data = await res.json();
+        textResponse = await res.clone().text();
+        data = JSON.parse(textResponse);
       } catch (e) {
-        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+        console.error("Non-JSON in create:", textResponse);
+        throw new Error('Server error: ' + textResponse.substring(0, 50));
       }
 
       if (!res.ok || !data.success) {
@@ -150,10 +153,13 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
       });
 
       let data;
+      let textResponse = '';
       try {
-        data = await res.json();
+        textResponse = await res.clone().text();
+        data = JSON.parse(textResponse);
       } catch (e) {
-        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+        console.error("Non-JSON in join:", textResponse);
+        throw new Error('Server error: ' + textResponse.substring(0, 50));
       }
 
       if (!res.ok || !data.success) {
@@ -187,10 +193,13 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
       });
 
       let data;
+      let textResponse = '';
       try {
-        data = await res.json();
+        textResponse = await res.clone().text();
+        data = JSON.parse(textResponse);
       } catch (e) {
-        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+        console.error("Non-JSON in start:", textResponse);
+        throw new Error('Server error: ' + textResponse.substring(0, 50));
       }
 
       if (!res.ok || !data.success) {
