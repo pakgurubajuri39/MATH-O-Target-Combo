@@ -1,4 +1,4 @@
-// Web Audio API Synthesizer for Math-O Card Game
+// Web Audio API Synthesizer for NUMERIX: Math Clash Card Game
 
 class SoundManager {
   private ctx: AudioContext | null = null;

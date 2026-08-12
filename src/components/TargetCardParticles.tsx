@@ -17,7 +17,7 @@ interface TargetCardParticlesProps {
   triggerCount: number;
 }
 
-const MATH_SYMBOLS = ['+', '-', '×', '÷', '=', '√', 'π', '∫', '∑', '★', 'MATH-O!', '✨', '+15'];
+const MATH_SYMBOLS = ['+', '-', '×', '÷', '=', '√', 'π', '∫', '∑', '★', 'NUMERIX!', '✨', '+15'];
 const PARTICLE_COLORS = [
   'text-emerald-500 bg-emerald-100 border-emerald-300',
   'text-amber-500 bg-amber-100 border-amber-300',

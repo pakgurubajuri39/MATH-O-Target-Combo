@@ -63,11 +63,11 @@ export const CardView: React.FC<CardViewProps> = ({
       {/* Cool Geometric Inner Frame */}
       <div className="absolute inset-1 border border-white/30 rounded-xl pointer-events-none flex flex-col justify-between p-1">
         <div className="flex justify-between items-center text-[7px] font-mono tracking-widest opacity-60">
-          <span>MATH-O!</span>
+          <span>NUMERIX</span>
           <span>{card.color.substring(0, 3).toUpperCase()}</span>
         </div>
         <div className="flex justify-between items-center text-[7px] font-mono tracking-widest opacity-60 rotate-180">
-          <span>MATH-O!</span>
+          <span>NUMERIX</span>
           <span>{card.color.substring(0, 3).toUpperCase()}</span>
         </div>
       </div>

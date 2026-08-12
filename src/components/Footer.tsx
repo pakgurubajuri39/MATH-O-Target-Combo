@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
           @copyright Pak GuruAI
         </p>
         <p className="text-[10px] text-slate-400 font-medium">
-          MATH-O! Target Combo • Game Kartu Matematika Edukatif Interaktif
+          NUMERIX: Math Clash • Game Kartu Matematika Edukatif Interaktif
         </p>
       </div>
     </footer>

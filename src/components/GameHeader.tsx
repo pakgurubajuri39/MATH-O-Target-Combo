@@ -35,16 +35,20 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-tr from-amber-400 via-pink-500 to-cyan-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-xl shadow-lg tracking-tighter">
-            M!
+          <div className="relative group cursor-pointer shrink-0">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 ring-1 ring-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden gap-0.5">
+              <span className="text-lg sm:text-xl font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] tracking-tighter">√</span>
+              <span className="text-lg sm:text-xl font-black text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] tracking-tighter">π</span>
+            </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-black text-white text-base sm:text-lg tracking-tight">
-                MATH-O!
+                NUMERIX
               </h1>
-              <span className="text-[10px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
-                Target Combo
+              <span className="text-[10px] font-black bg-gradient-to-r from-cyan-400 to-blue-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                Math Clash
               </span>
               {activeRoomCode && (
                 <span className="text-[10px] font-mono font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full animate-pulse">

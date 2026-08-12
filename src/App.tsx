@@ -378,10 +378,10 @@ export default function App() {
     setHistory([historyEntry, ...history]);
     setActiveTargetCard(card);
 
-    // Auto MATH-O alert check
+    // Auto NUMERIX alert check
     if (newHand.length === 1 && !currentPlayer.isMathOCalled) {
       sounds.playMathOAlert();
-      showBanner(`${currentPlayer.name} menyisakan 1 kartu: "MATH-O!"`, 'warning');
+      showBanner(`${currentPlayer.name} menyisakan 1 kartu: "NUMERIX!"`, 'warning');
     }
 
     // Handle Action Cards (+2, Skip, Reverse)
@@ -566,7 +566,7 @@ export default function App() {
 
     if (newHand.length === 1) {
       sounds.playMathOAlert();
-      showBanner(`${currentPlayer.name} menyisakan 1 kartu: "MATH-O!"`, 'warning');
+      showBanner(`${currentPlayer.name} menyisakan 1 kartu: "NUMERIX!"`, 'warning');
     }
 
     advanceTurn(updatedPlayers, deck);
@@ -632,7 +632,7 @@ export default function App() {
     advanceTurn(updatedPlayers, currentDeck);
   };
 
-  // Call MATH-O!
+  // Call NUMERIX!
   const handleCallMathO = () => {
     sounds.playMathOAlert();
     const currentPlayer = players[activePlayerIndex];
@@ -640,7 +640,7 @@ export default function App() {
     const updatedPlayers = [...players];
     updatedPlayers[activePlayerIndex] = updatedPlayer;
     setPlayers(updatedPlayers);
-    showBanner(`📣 ${currentPlayer.name} berteriak "MATH-O!"`, 'warning');
+    showBanner(`📣 ${currentPlayer.name} berteriak "NUMERIX!"`, 'warning');
   };
 
   // Request Hint from Pak GuruAI
@@ -1020,7 +1020,7 @@ export default function App() {
               </div>
 
               <span className="text-xs font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                Pemenang MATH-O!
+                Pemenang NUMERIX!
               </span>
 
               <h2 className="text-2xl sm:text-3xl font-black mt-2 mb-1">

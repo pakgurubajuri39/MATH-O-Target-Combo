@@ -171,10 +171,10 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
 
           {/* Rules & Scoring System Explanation */}
           <div className="bg-amber-950/30 border border-amber-500/20 rounded-xl p-4 text-xs text-amber-200/90 space-y-1">
-            <span className="font-bold text-amber-300 block text-xs">💡 Sistem Perhitungan Poin MATH-O!:</span>
+            <span className="font-bold text-amber-300 block text-xs">💡 Sistem Perhitungan Poin NUMERIX:</span>
             <ul className="list-disc list-inside space-y-0.5 pl-1 opacity-90">
               <li><b>Turunkan Kartu Single:</b> +5 Poin</li>
-              <li><b>Berhasil MATH-O Target Combo:</b> +15 Poin Dasar + (+5 Poin per Kartu Combo)</li>
+              <li><b>Berhasil NUMERIX Combo:</b> +15 Poin Dasar + (+5 Poin per Kartu Combo)</li>
               <li><b>Menang Ronde (Kartu Habis):</b> +50 Poin Bonus Juara</li>
               <li><b>Salah Hitung Combo:</b> Penalti Ambil 2 Kartu Tambahan</li>
             </ul>

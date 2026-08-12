@@ -104,9 +104,15 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
         }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+      }
+
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal membuat ruang permainan.');
+        throw new Error(data?.error || 'Gagal membuat ruang permainan.');
       }
 
       setConnectedRoom(data.roomState);
@@ -143,9 +149,15 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
         }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+      }
+
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal bergabung ke ruang.');
+        throw new Error(data?.error || 'Gagal bergabung ke ruang.');
       }
 
       setConnectedRoom(data.roomState);
@@ -174,9 +186,15 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
         body: JSON.stringify({ playerId: myPlayerId }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('Terjadi kesalahan pada server (Respon tidak valid).');
+      }
+
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal memulai permainan.');
+        throw new Error(data?.error || 'Gagal memulai permainan.');
       }
 
       onRoomConnected(data.roomState, myPlayerId);

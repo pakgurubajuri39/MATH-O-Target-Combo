@@ -80,7 +80,7 @@ const tutorialSteps = [
           </li>
           <li className="flex gap-3">
             <span className="text-amber-400 font-bold mt-1">2.</span>
-            <p className="text-sm text-slate-300">Jangan lupa meneriakkan <strong>"MATH-O!"</strong> ketika kartumu tersisa 1, atau kamu bisa kena penalti jika ketahuan!</p>
+            <p className="text-sm text-slate-300">Jangan lupa meneriakkan <strong>"NUMERIX!"</strong> ketika kartumu tersisa 1, atau kamu bisa kena penalti jika ketahuan!</p>
           </li>
           <li className="flex gap-3">
             <span className="text-amber-400 font-bold mt-1">3.</span>

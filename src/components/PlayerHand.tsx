@@ -48,7 +48,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           </div>
         </div>
 
-        {/* MATH-O! Announcement Alert Button */}
+        {/* NUMERIX! Announcement Alert Button */}
         <div className="flex items-center gap-2">
           {player.hand.length <= 2 && (
             <button
@@ -62,13 +62,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
               }`}
             >
               <Volume2 className="w-4 h-4" />
-              <span>{player.isMathOCalled ? 'MATH-O! TERPANGGIL' : 'TERIAK "MATH-O!"'}</span>
+              <span>{player.isMathOCalled ? 'NUMERIX! TERPANGGIL' : 'TERIAK "NUMERIX!"'}</span>
             </button>
           )}
 
           {player.isMathOCalled && player.hand.length > 2 && (
             <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-              Math-O Terdeteksi
+              Numerix Terdeteksi
             </span>
           )}
         </div>
