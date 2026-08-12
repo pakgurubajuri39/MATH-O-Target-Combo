@@ -1,0 +1,6 @@
+{
+  "name": "MATH-O! Target Combo",
+  "description": "Game kartu matematika edukatif interaktif dengan mode Lawan AI & Pass-and-Play Multiplayer oleh Pak GuruAI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
