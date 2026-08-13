@@ -103,332 +103,358 @@ function createShuffledDeck() {
 
 // Create Room Endpoint
 app.post("/api/rooms/create", (req, res) => {
-  const { hostName, maxPlayers = 4 } = req.body;
-  if (!hostName) {
-    return res.status(400).json({ error: "Nama pembuat ruang wajib diisi." });
+  try {
+    const { hostName, maxPlayers = 4 } = req.body || {};
+    if (!hostName || typeof hostName !== 'string' || !hostName.trim()) {
+      return res.status(400).json({ error: "Nama pembuat ruang wajib diisi." });
+    }
+
+    const roomCode = generateRoomCode();
+    const hostId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const avatars = ['🎮', '🎯', '🚀', '⭐'];
+    const colorThemes = ['bg-emerald-600', 'bg-blue-600', 'bg-purple-600', 'bg-rose-600'];
+
+    const hostPlayer: RoomPlayer = {
+      id: hostId,
+      name: hostName.trim(),
+      hand: [],
+      isAI: false,
+      score: 0,
+      combosCount: 0,
+      isMathOCalled: false,
+      avatar: avatars[0],
+      colorTheme: colorThemes[0],
+    };
+
+    rooms[roomCode] = {
+      code: roomCode,
+      hostPlayerId: hostId,
+      maxPlayers: Math.min(Math.max(2, Number(maxPlayers) || 4), 4),
+      status: 'waiting',
+      players: [hostPlayer],
+      deck: [],
+      activeTargetCard: null,
+      activePlayerIndex: 0,
+      direction: 1,
+      history: [],
+      winner: null,
+      lastUpdated: Date.now(),
+    };
+
+    return res.json({
+      success: true,
+      roomCode,
+      playerId: hostId,
+      roomState: rooms[roomCode],
+    });
+  } catch (err: any) {
+    console.error("Error in /api/rooms/create:", err);
+    return res.status(500).json({ error: "Gagal membuat ruang permainan: " + (err?.message || "Kesalahan server") });
   }
-
-  const roomCode = generateRoomCode();
-  const hostId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-  const avatars = ['🎮', '🎯', '🚀', '⭐'];
-  const colorThemes = ['bg-emerald-600', 'bg-blue-600', 'bg-purple-600', 'bg-rose-600'];
-
-  const hostPlayer: RoomPlayer = {
-    id: hostId,
-    name: hostName,
-    hand: [],
-    isAI: false,
-    score: 0,
-    combosCount: 0,
-    isMathOCalled: false,
-    avatar: avatars[0],
-    colorTheme: colorThemes[0],
-  };
-
-  rooms[roomCode] = {
-    code: roomCode,
-    hostPlayerId: hostId,
-    maxPlayers: Math.min(Math.max(2, maxPlayers), 4),
-    status: 'waiting',
-    players: [hostPlayer],
-    deck: [],
-    activeTargetCard: null,
-    activePlayerIndex: 0,
-    direction: 1,
-    history: [],
-    winner: null,
-    lastUpdated: Date.now(),
-  };
-
-  return res.json({
-    success: true,
-    roomCode,
-    playerId: hostId,
-    roomState: rooms[roomCode],
-  });
 });
 
 // Join Room Endpoint
 app.post("/api/rooms/join", (req, res) => {
-  const { roomCode, playerName } = req.body;
-  if (!roomCode || !playerName) {
-    return res.status(400).json({ error: "Kode Ruang dan Nama Pemain wajib diisi." });
-  }
+  try {
+    const { roomCode, playerName } = req.body || {};
+    if (!roomCode || !playerName || typeof playerName !== 'string' || !playerName.trim()) {
+      return res.status(400).json({ error: "Kode Ruang dan Nama Pemain wajib diisi." });
+    }
 
-  const cleanCode = String(roomCode).trim().toUpperCase();
-  const room = rooms[cleanCode];
+    const cleanCode = String(roomCode).trim().toUpperCase();
+    const room = rooms[cleanCode];
 
-  if (!room) {
-    return res.status(404).json({ error: `Ruang dengan Kode [${cleanCode}] tidak ditemukan! Periksa kembali kodenya.` });
-  }
+    if (!room) {
+      return res.status(404).json({ error: `Ruang dengan Kode [${cleanCode}] tidak ditemukan! Periksa kembali kodenya.` });
+    }
 
-  if (room.status !== 'waiting' && !room.players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-    return res.status(400).json({ error: "Permainan di ruang ini sudah berjalan atau selesai." });
-  }
+    const cleanName = playerName.trim();
 
-  // Re-join existing player if name matches
-  const existingPlayer = room.players.find(p => p.name.toLowerCase() === playerName.toLowerCase());
-  if (existingPlayer) {
+    if (room.status !== 'waiting' && !room.players.some(p => p.name.toLowerCase() === cleanName.toLowerCase())) {
+      return res.status(400).json({ error: "Permainan di ruang ini sudah berjalan atau selesai." });
+    }
+
+    // Re-join existing player if name matches
+    const existingPlayer = room.players.find(p => p.name.toLowerCase() === cleanName.toLowerCase());
+    if (existingPlayer) {
+      return res.json({
+        success: true,
+        playerId: existingPlayer.id,
+        roomState: room,
+      });
+    }
+
+    if (room.players.length >= room.maxPlayers) {
+      return res.status(400).json({ error: "Ruang permainan sudah penuh!" });
+    }
+
+    const newPlayerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const avatars = ['🎮', '🎯', '🚀', '⭐'];
+    const colorThemes = ['bg-emerald-600', 'bg-blue-600', 'bg-purple-600', 'bg-rose-600'];
+    const idx = room.players.length;
+
+    const newPlayer: RoomPlayer = {
+      id: newPlayerId,
+      name: cleanName,
+      hand: [],
+      isAI: false,
+      score: 0,
+      combosCount: 0,
+      isMathOCalled: false,
+      avatar: avatars[idx % avatars.length],
+      colorTheme: colorThemes[idx % colorThemes.length],
+    };
+
+    room.players.push(newPlayer);
+    room.lastUpdated = Date.now();
+
     return res.json({
       success: true,
-      playerId: existingPlayer.id,
+      playerId: newPlayerId,
       roomState: room,
     });
+  } catch (err: any) {
+    console.error("Error in /api/rooms/join:", err);
+    return res.status(500).json({ error: "Gagal bergabung ke ruang: " + (err?.message || "Kesalahan server") });
   }
-
-  if (room.players.length >= room.maxPlayers) {
-    return res.status(400).json({ error: "Ruang permainan sudah penuh!" });
-  }
-
-  const newPlayerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const avatars = ['🎮', '🎯', '🚀', '⭐'];
-  const colorThemes = ['bg-emerald-600', 'bg-blue-600', 'bg-purple-600', 'bg-rose-600'];
-  const idx = room.players.length;
-
-  const newPlayer: RoomPlayer = {
-    id: newPlayerId,
-    name: playerName,
-    hand: [],
-    isAI: false,
-    score: 0,
-    combosCount: 0,
-    isMathOCalled: false,
-    avatar: avatars[idx % avatars.length],
-    colorTheme: colorThemes[idx % colorThemes.length],
-  };
-
-  room.players.push(newPlayer);
-  room.lastUpdated = Date.now();
-
-  return res.json({
-    success: true,
-    playerId: newPlayerId,
-    roomState: room,
-  });
 });
 
 // Get Room State Endpoint
 app.get("/api/rooms/:code", (req, res) => {
-  const roomCode = req.params.code.trim().toUpperCase();
-  const room = rooms[roomCode];
+  try {
+    const roomCode = String(req.params.code || '').trim().toUpperCase();
+    const room = rooms[roomCode];
 
-  if (!room) {
-    return res.status(404).json({ error: "Ruang permainan tidak ditemukan." });
+    if (!room) {
+      return res.status(404).json({ error: "Ruang permainan tidak ditemukan." });
+    }
+
+    return res.json({
+      success: true,
+      roomState: room,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Gagal mengambil data ruang." });
   }
-
-  return res.json({
-    success: true,
-    roomState: room,
-  });
 });
 
 // Start Game in Room Endpoint
 app.post("/api/rooms/:code/start", (req, res) => {
-  const roomCode = req.params.code.trim().toUpperCase();
-  const { playerId } = req.body;
-  const room = rooms[roomCode];
+  try {
+    const roomCode = String(req.params.code || '').trim().toUpperCase();
+    const { playerId } = req.body || {};
+    const room = rooms[roomCode];
 
-  if (!room) return res.status(404).json({ error: "Ruang tidak ditemukan." });
-  if (room.hostPlayerId !== playerId) {
-    return res.status(403).json({ error: "Hanya pembuat ruang (Host) yang dapat memulai permainan!" });
+    if (!room) return res.status(404).json({ error: "Ruang tidak ditemukan." });
+    if (room.hostPlayerId !== playerId) {
+      return res.status(403).json({ error: "Hanya pembuat ruang (Host) yang dapat memulai permainan!" });
+    }
+
+    if (room.players.length < 2) {
+      return res.status(400).json({ error: "Minimal 2 pemain dibutuhkan untuk memulai." });
+    }
+
+    const fullDeck = createShuffledDeck();
+
+    // Deal 7 cards per player
+    room.players.forEach((p, idx) => {
+      p.hand = fullDeck.slice(idx * 7, (idx + 1) * 7);
+      p.isMathOCalled = false;
+    });
+
+    const remainingDeck = fullDeck.slice(room.players.length * 7);
+
+    let targetIdx = 0;
+    while (targetIdx < remainingDeck.length && remainingDeck[targetIdx].type !== 'number') {
+      targetIdx++;
+    }
+
+    room.activeTargetCard = remainingDeck[targetIdx] || remainingDeck[0];
+    room.deck = remainingDeck.filter((_, idx) => idx !== targetIdx);
+    room.status = 'playing';
+    room.activePlayerIndex = 0;
+    room.direction = 1;
+    room.winner = null;
+    room.history = [{
+      id: `m_${Date.now()}`,
+      playerName: 'Sistem',
+      timestamp: new Date().toLocaleTimeString('id-ID'),
+      actionType: 'single',
+      cardsPlayed: [room.activeTargetCard],
+      targetValueBefore: room.activeTargetCard?.value || 0,
+      targetValueAfter: room.activeTargetCard?.value || 0,
+      description: `Permainan Dimulai! Target Meja: ${room.activeTargetCard?.color || ''} ${room.activeTargetCard?.value ?? ''}`,
+    }];
+    room.lastUpdated = Date.now();
+
+    return res.json({ success: true, roomState: room });
+  } catch (err: any) {
+    console.error("Error in /api/rooms/start:", err);
+    return res.status(500).json({ error: "Gagal memulai permainan: " + (err?.message || "Kesalahan server") });
   }
-
-  if (room.players.length < 2) {
-    return res.status(400).json({ error: "Minimal 2 pemain dibutuhkan untuk memulai." });
-  }
-
-  const fullDeck = createShuffledDeck();
-
-  // Deal 7 cards per player
-  room.players.forEach((p, idx) => {
-    p.hand = fullDeck.slice(idx * 7, (idx + 1) * 7);
-    p.isMathOCalled = false;
-  });
-
-  const remainingDeck = fullDeck.slice(room.players.length * 7);
-
-  let targetIdx = 0;
-  while (targetIdx < remainingDeck.length && remainingDeck[targetIdx].type !== 'number') {
-    targetIdx++;
-  }
-
-  room.activeTargetCard = remainingDeck[targetIdx] || remainingDeck[0];
-  room.deck = remainingDeck.filter((_, idx) => idx !== targetIdx);
-  room.status = 'playing';
-  room.activePlayerIndex = 0;
-  room.direction = 1;
-  room.winner = null;
-  room.history = [{
-    id: `m_${Date.now()}`,
-    playerName: 'Sistem',
-    timestamp: new Date().toLocaleTimeString('id-ID'),
-    actionType: 'single',
-    cardsPlayed: [room.activeTargetCard],
-    targetValueBefore: room.activeTargetCard.value || 0,
-    targetValueAfter: room.activeTargetCard.value || 0,
-    description: `Permainan Dimulai! Target Meja: ${room.activeTargetCard.color} ${room.activeTargetCard.value}`,
-  }];
-  room.lastUpdated = Date.now();
-
-  return res.json({ success: true, roomState: room });
 });
 
 // Execute Room Player Action Endpoint
 app.post("/api/rooms/:code/action", (req, res) => {
-  const roomCode = req.params.code.trim().toUpperCase();
-  const { playerId, actionType, card, comboCards, comboOperators, isComboCorrect, comboErrorMsg } = req.body;
-  const room = rooms[roomCode];
+  try {
+    const roomCode = String(req.params.code || '').trim().toUpperCase();
+    const { playerId, actionType, card, comboCards, comboOperators, isComboCorrect, comboErrorMsg } = req.body || {};
+    const room = rooms[roomCode];
 
-  if (!room) return res.status(404).json({ error: "Ruang tidak ditemukan." });
-  if (room.status !== 'playing') return res.status(400).json({ error: "Permainan tidak sedang berjalan." });
+    if (!room) return res.status(404).json({ error: "Ruang tidak ditemukan." });
+    if (room.status !== 'playing') return res.status(400).json({ error: "Permainan tidak sedang berjalan." });
 
-  const activeP = room.players[room.activePlayerIndex];
-  if (activeP.id !== playerId) {
-    return res.status(400).json({ error: "Bukan giliran Anda!" });
-  }
-
-  room.lastUpdated = Date.now();
-
-  if (actionType === 'single' && card) {
-    // Single play
-    activeP.hand = activeP.hand.filter(c => c.id !== card.id);
-    activeP.score += 5;
-
-    const oldVal = room.activeTargetCard?.value || 0;
-    room.activeTargetCard = card;
-
-    let skipCount = 1;
-    if (card.type === '+2') {
-      const nextIdx = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
-      const targetP = room.players[nextIdx];
-      let penaltyCards = [];
-      for (let i = 0; i < 2; i++) {
-        if (room.deck.length === 0) room.deck = createShuffledDeck();
-        penaltyCards.push(room.deck.shift());
-      }
-      targetP.hand.push(...penaltyCards);
-      skipCount = 2;
-    } else if (card.type === 'skip') {
-      skipCount = 2;
-    } else if (card.type === 'reverse') {
-      room.direction = -room.direction;
+    const activeP = room.players[room.activePlayerIndex];
+    if (!activeP || activeP.id !== playerId) {
+      return res.status(400).json({ error: "Bukan giliran Anda!" });
     }
 
-    room.history.unshift({
-      id: `m_${Date.now()}`,
-      playerName: activeP.name,
-      timestamp: new Date().toLocaleTimeString('id-ID'),
-      actionType: 'single',
-      cardsPlayed: [card],
-      targetValueBefore: oldVal,
-      targetValueAfter: card.value || oldVal,
-      description: `${activeP.name} menurunkan kartu Single ${card.color} ${card.value !== undefined ? card.value : card.label}`,
-    });
+    room.lastUpdated = Date.now();
 
-    if (activeP.hand.length === 0) {
-      room.status = 'finished';
-      room.winner = activeP;
-      activeP.score += 50;
-    } else {
-      room.activePlayerIndex = (room.activePlayerIndex + room.direction * skipCount + room.players.length) % room.players.length;
-    }
+    if (actionType === 'single' && card) {
+      // Single play
+      activeP.hand = activeP.hand.filter(c => c.id !== card.id);
+      activeP.score += 5;
 
-    return res.json({ success: true, roomState: room });
-  }
+      const oldVal = room.activeTargetCard?.value || 0;
+      room.activeTargetCard = card;
 
-  if (actionType === 'combo' && comboCards && comboCards.length >= 2) {
-    if (!isComboCorrect) {
-      // Incorrect combo -> penalty +2
-      let penaltyCards = [];
-      for (let i = 0; i < 2; i++) {
-        if (room.deck.length === 0) room.deck = createShuffledDeck();
-        penaltyCards.push(room.deck.shift());
+      let skipCount = 1;
+      if (card.type === '+2') {
+        const nextIdx = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
+        const targetP = room.players[nextIdx];
+        let penaltyCards = [];
+        for (let i = 0; i < 2; i++) {
+          if (room.deck.length === 0) room.deck = createShuffledDeck();
+          penaltyCards.push(room.deck.shift());
+        }
+        if (targetP) targetP.hand.push(...penaltyCards);
+        skipCount = 2;
+      } else if (card.type === 'skip') {
+        skipCount = 2;
+      } else if (card.type === 'reverse') {
+        room.direction = -room.direction;
       }
-      activeP.hand.push(...penaltyCards);
 
       room.history.unshift({
         id: `m_${Date.now()}`,
         playerName: activeP.name,
         timestamp: new Date().toLocaleTimeString('id-ID'),
-        actionType: 'penalty',
+        actionType: 'single',
+        cardsPlayed: [card],
+        targetValueBefore: oldVal,
+        targetValueAfter: card.value || oldVal,
+        description: `${activeP.name} menurunkan kartu Single ${card.color} ${card.value !== undefined ? card.value : card.label}`,
+      });
+
+      if (activeP.hand.length === 0) {
+        room.status = 'finished';
+        room.winner = activeP;
+        activeP.score += 50;
+      } else {
+        room.activePlayerIndex = (room.activePlayerIndex + room.direction * skipCount + room.players.length) % room.players.length;
+      }
+
+      return res.json({ success: true, roomState: room });
+    }
+
+    if (actionType === 'combo' && comboCards && comboCards.length >= 2) {
+      if (!isComboCorrect) {
+        // Incorrect combo -> penalty +2
+        let penaltyCards = [];
+        for (let i = 0; i < 2; i++) {
+          if (room.deck.length === 0) room.deck = createShuffledDeck();
+          penaltyCards.push(room.deck.shift());
+        }
+        activeP.hand.push(...penaltyCards);
+
+        room.history.unshift({
+          id: `m_${Date.now()}`,
+          playerName: activeP.name,
+          timestamp: new Date().toLocaleTimeString('id-ID'),
+          actionType: 'penalty',
+          cardsPlayed: comboCards,
+          targetValueBefore: room.activeTargetCard?.value || 0,
+          targetValueAfter: room.activeTargetCard?.value || 0,
+          description: `❌ ${activeP.name} salah hitung Combo! Penalti +2 kartu. ${comboErrorMsg || ''}`,
+        });
+
+        room.activePlayerIndex = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
+        return res.json({ success: true, roomState: room });
+      }
+
+      // Correct Combo
+      const comboIds = new Set(comboCards.map((c: any) => c.id));
+      activeP.hand = activeP.hand.filter(c => !comboIds.has(c.id));
+      activeP.score += 15 + (comboCards.length * 5);
+      activeP.combosCount += 1;
+
+      const newTarget = comboCards[comboCards.length - 1];
+      const oldVal = room.activeTargetCard?.value || 0;
+      room.activeTargetCard = newTarget;
+
+      let eqText = `${comboCards[0]?.value ?? ''}`;
+      if (comboOperators) {
+        for (let i = 0; i < comboOperators.length; i++) {
+          eqText += ` ${comboOperators[i]} ${comboCards[i + 1]?.value ?? ''}`;
+        }
+      }
+      eqText += ` = ${oldVal}`;
+
+      room.history.unshift({
+        id: `m_${Date.now()}`,
+        playerName: activeP.name,
+        timestamp: new Date().toLocaleTimeString('id-ID'),
+        actionType: 'combo',
         cardsPlayed: comboCards,
+        equationText: eqText,
+        targetValueBefore: oldVal,
+        targetValueAfter: newTarget?.value || oldVal,
+        description: `✨ ${activeP.name} BERHASIL COMBO! [${eqText}]`,
+      });
+
+      if (activeP.hand.length === 0) {
+        room.status = 'finished';
+        room.winner = activeP;
+        activeP.score += 50;
+      } else {
+        room.activePlayerIndex = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
+      }
+
+      return res.json({ success: true, roomState: room });
+    }
+
+    if (actionType === 'draw') {
+      if (room.deck.length === 0) room.deck = createShuffledDeck();
+      const drawnCard = room.deck.shift();
+      activeP.hand.push(drawnCard);
+
+      room.history.unshift({
+        id: `m_${Date.now()}`,
+        playerName: activeP.name,
+        timestamp: new Date().toLocaleTimeString('id-ID'),
+        actionType: 'draw',
+        cardsPlayed: [],
         targetValueBefore: room.activeTargetCard?.value || 0,
         targetValueAfter: room.activeTargetCard?.value || 0,
-        description: `❌ ${activeP.name} salah hitung Combo! Penalti +2 kartu. ${comboErrorMsg || ''}`,
+        description: `${activeP.name} mengambil 1 kartu dari tumpukan`,
       });
 
       room.activePlayerIndex = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
       return res.json({ success: true, roomState: room });
     }
 
-    // Correct Combo
-    const comboIds = new Set(comboCards.map((c: any) => c.id));
-    activeP.hand = activeP.hand.filter(c => !comboIds.has(c.id));
-    activeP.score += 15 + (comboCards.length * 5);
-    activeP.combosCount += 1;
-
-    const newTarget = comboCards[comboCards.length - 1];
-    const oldVal = room.activeTargetCard?.value || 0;
-    room.activeTargetCard = newTarget;
-
-    let eqText = `${comboCards[0].value}`;
-    if (comboOperators) {
-      for (let i = 0; i < comboOperators.length; i++) {
-        eqText += ` ${comboOperators[i]} ${comboCards[i + 1].value}`;
-      }
-    }
-    eqText += ` = ${oldVal}`;
-
-    room.history.unshift({
-      id: `m_${Date.now()}`,
-      playerName: activeP.name,
-      timestamp: new Date().toLocaleTimeString('id-ID'),
-      actionType: 'combo',
-      cardsPlayed: comboCards,
-      equationText: eqText,
-      targetValueBefore: oldVal,
-      targetValueAfter: newTarget.value || oldVal,
-      description: `✨ ${activeP.name} BERHASIL COMBO! [${eqText}]`,
-    });
-
-    if (activeP.hand.length === 0) {
-      room.status = 'finished';
-      room.winner = activeP;
-      activeP.score += 50;
-    } else {
-      room.activePlayerIndex = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
+    if (actionType === 'math_o') {
+      activeP.isMathOCalled = true;
+      return res.json({ success: true, roomState: room });
     }
 
-    return res.json({ success: true, roomState: room });
+    return res.status(400).json({ error: "Aksi tidak valid." });
+  } catch (err: any) {
+    console.error("Error in /api/rooms/action:", err);
+    return res.status(500).json({ error: "Gagal memproses aksi: " + (err?.message || "Kesalahan server") });
   }
-
-  if (actionType === 'draw') {
-    if (room.deck.length === 0) room.deck = createShuffledDeck();
-    const drawnCard = room.deck.shift();
-    activeP.hand.push(drawnCard);
-
-    room.history.unshift({
-      id: `m_${Date.now()}`,
-      playerName: activeP.name,
-      timestamp: new Date().toLocaleTimeString('id-ID'),
-      actionType: 'draw',
-      cardsPlayed: [],
-      targetValueBefore: room.activeTargetCard?.value || 0,
-      targetValueAfter: room.activeTargetCard?.value || 0,
-      description: `${activeP.name} mengambil 1 kartu dari tumpukan`,
-    });
-
-    room.activePlayerIndex = (room.activePlayerIndex + room.direction + room.players.length) % room.players.length;
-    return res.json({ success: true, roomState: room });
-  }
-
-  if (actionType === 'math_o') {
-    activeP.isMathOCalled = true;
-    return res.json({ success: true, roomState: room });
-  }
-
-  return res.status(400).json({ error: "Aksi tidak valid." });
 });
 
 
@@ -498,6 +524,12 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Global Express Error Handling Middleware
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("Unhandled Server Error:", err);
+    res.status(500).json({ success: false, error: err?.message || "Terjadi kesalahan internal pada server." });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server MATH-O! Target Combo running on http://localhost:${PORT}`);

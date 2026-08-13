@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../types';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface RoomPlayer {
   id: string;
@@ -50,12 +51,23 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
   const [connectedRoom, setConnectedRoom] = useState<RoomState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     // Load default saved player name
     const savedName = localStorage.getItem('matho_player_name') || '';
     if (savedName) setPlayerName(savedName);
-  }, []);
+
+    // Auto-fill room code from URL query parameter if present (?join=CODE or ?room=CODE)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const codeFromUrl = params.get('join') || params.get('room');
+      if (codeFromUrl) {
+        setRoomCodeInput(codeFromUrl.trim().toUpperCase());
+        setActiveTab('join');
+      }
+    }
+  }, [isOpen]);
 
   // Poll room state in lobby until game starts
   useEffect(() => {
@@ -222,6 +234,14 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const handleCopyLink = () => {
+    if (!connectedRoom) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?join=${connectedRoom.code}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col">
@@ -271,18 +291,43 @@ export const RoomMultiplayerModal: React.FC<RoomMultiplayerModalProps> = ({
                   Kode Ruang Permainan Anda
                 </span>
 
-                <div className="flex items-center justify-center gap-2 mt-4 mb-2">
-                  <div className="text-4xl sm:text-5xl font-mono font-black text-cyan-400 tracking-[0.2em] bg-slate-900 px-6 py-3 rounded-xl border-2 border-cyan-500/50 shadow-inner">
-                    {connectedRoom.code}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-3 mb-2">
+                  <div className="bg-white p-2 rounded-xl shadow-lg border border-slate-700 flex flex-col items-center shrink-0">
+                    <QRCodeSVG
+                      value={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?join=${connectedRoom.code}` : ''}
+                      size={80}
+                      bgColor="#ffffff"
+                      fgColor="#0f172a"
+                      level="M"
+                    />
+                    <span className="text-[9px] font-extrabold text-slate-800 uppercase mt-1 tracking-wider">
+                      Scan Kamera HP
+                    </span>
                   </div>
-                  <button
-                    onClick={handleCopyCode}
-                    className="p-3 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl border border-slate-600 transition-all active:scale-95 flex flex-col items-center justify-center gap-1"
-                    title="Salin Kode"
-                  >
-                    <span className="text-lg">{copiedCode ? '✓' : '📋'}</span>
-                    <span className="text-[10px] font-bold uppercase">{copiedCode ? 'Tersalin' : 'Salin'}</span>
-                  </button>
+
+                  <div className="flex flex-col items-center sm:items-start gap-2">
+                    <div className="text-3xl sm:text-4xl font-mono font-black text-cyan-400 tracking-[0.2em] bg-slate-900 px-4 py-2 rounded-xl border-2 border-cyan-500/50 shadow-inner">
+                      {connectedRoom.code}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={handleCopyCode}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl border border-slate-600 transition-all active:scale-95 flex items-center justify-center gap-1 text-xs font-bold cursor-pointer"
+                        title="Salin Kode 4-Digit"
+                      >
+                        <span>{copiedCode ? '✓' : '📋'}</span>
+                        <span>{copiedCode ? 'Tersalin' : 'Kode'}</span>
+                      </button>
+                      <button
+                        onClick={handleCopyLink}
+                        className="px-2.5 py-1.5 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-200 hover:text-white rounded-xl border border-cyan-500/40 transition-all active:scale-95 flex items-center justify-center gap-1 text-xs font-bold cursor-pointer"
+                        title="Salin Link Tautan Ruang"
+                      >
+                        <span>{copiedLink ? '✓' : '🔗'}</span>
+                        <span>{copiedLink ? 'Tersalin' : 'Link Ruang'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <p className="text-xs text-slate-400">

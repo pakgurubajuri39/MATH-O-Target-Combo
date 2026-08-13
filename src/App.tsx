@@ -44,7 +44,11 @@ import {
   AlertCircle,
   Calculator,
   Globe,
+  Share2,
+  Check,
+  QrCode,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function App() {
   // Game Setup State
@@ -92,10 +96,41 @@ export default function App() {
 
   const isAITurnRef = useRef<boolean>(false);
 
-  // Sync sound settings
+  const [copiedRoomLink, setCopiedRoomLink] = useState<boolean>(false);
+
+  const handleCopyRoomLink = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareUrl = activeRoomCode
+      ? `${window.location.origin}${window.location.pathname}?join=${activeRoomCode}`
+      : `${window.location.origin}${window.location.pathname}`;
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedRoomLink(true);
+      setNotification({
+        message: activeRoomCode
+          ? `Link Ruang (${activeRoomCode}) tersalin ke clipboard! Bagikan ke teman.`
+          : 'Link aplikasi tersalin ke clipboard! Bagikan ke teman untuk bergabung.',
+        type: 'success',
+      });
+      setTimeout(() => setCopiedRoomLink(false), 2200);
+    }).catch(() => {
+      setNotification({
+        message: 'Gagal menyalin link.',
+        type: 'error',
+      });
+    });
+  };
+
+  // Check URL query parameters for auto-joining room code
   useEffect(() => {
-    sounds.enabled = soundEnabled;
-  }, [soundEnabled]);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const codeFromUrl = params.get('join') || params.get('room');
+      if (codeFromUrl) {
+        setIsRoomMultiplayerOpen(true);
+      }
+    }
+  }, []);
 
   // Real-Time Room Code Sync Polling
   useEffect(() => {
@@ -807,13 +842,20 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
                 
                 {/* Room Code Online Multiplayer */}
-                <button
+                <div
                   onClick={() => setIsRoomMultiplayerOpen(true)}
                   id="btn-mode-room-code"
-                  className="bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl font-extrabold text-left transition-all duration-300 shadow-lg border border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] flex flex-col justify-between cursor-pointer group active:scale-95 relative overflow-hidden"
+                  className="bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl font-extrabold text-left transition-all duration-300 shadow-lg border border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] flex flex-col justify-between cursor-pointer group active:scale-98 relative overflow-hidden"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setIsRoomMultiplayerOpen(true);
+                    }
+                  }}
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500 -mr-10 -mt-10"></div>
-                  <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div className="flex items-center justify-between mb-3 relative z-10">
                     <div className="p-2 bg-cyan-500/20 rounded-xl group-hover:scale-110 transition-transform duration-300">
                       <Globe className="w-6 h-6 text-cyan-300" />
                     </div>
@@ -821,13 +863,64 @@ export default function App() {
                       MULTIPLAYER
                     </span>
                   </div>
-                  <div className="relative z-10">
+                  <div className="relative z-10 mb-2">
                     <h3 className="text-base font-black text-white mb-1 group-hover:text-cyan-100 transition-colors">Main Sejaringan</h3>
                     <p className="text-[10px] text-cyan-200/70 font-medium leading-tight">
-                      Buat ruang & tantang teman via kode 4-digit!
+                      {activeRoomCode ? `Aktif di Ruang #${activeRoomCode}` : 'Buat ruang & tantang teman via kode 4-digit!'}
                     </p>
                   </div>
-                </button>
+
+                  {/* QR Code Element */}
+                  <div className="relative z-10 my-2 bg-slate-900/90 border border-cyan-500/30 p-2 rounded-xl flex items-center justify-between gap-2.5 group-hover:border-cyan-400/60 transition-colors shadow-inner">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-300">
+                        <QrCode className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>QR Code Join</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 leading-tight mt-0.5">
+                        Scan dengan kamera HP teman untuk gabung
+                      </span>
+                    </div>
+                    <div className="bg-white p-1 rounded-lg shadow-md shrink-0 transition-transform group-hover:scale-105">
+                      <QRCodeSVG
+                        value={
+                          typeof window !== 'undefined'
+                            ? activeRoomCode
+                              ? `${window.location.origin}${window.location.pathname}?join=${activeRoomCode}`
+                              : `${window.location.origin}${window.location.pathname}`
+                            : ''
+                        }
+                        size={52}
+                        bgColor="#ffffff"
+                        fgColor="#0f172a"
+                        level="M"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tombol Salin Link Ruang */}
+                  <div className="relative z-10 pt-2.5 border-t border-cyan-500/20 flex items-center">
+                    <button
+                      type="button"
+                      onClick={handleCopyRoomLink}
+                      id="btn-copy-room-link"
+                      className="w-full py-1.5 px-3 bg-cyan-500/20 hover:bg-cyan-500/35 active:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      title="Salin link ruang ke clipboard untuk dibagikan"
+                    >
+                      {copiedRoomLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-300 font-extrabold">Link Ruang Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="w-3.5 h-3.5 text-cyan-300" />
+                          <span>Salin Link Ruang</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
                 {/* Singleplayer AI */}
                 <button
