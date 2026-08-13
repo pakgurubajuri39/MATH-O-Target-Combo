@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Card,
   GameMode,
@@ -26,9 +27,9 @@ import { PassAndPlayOverlay } from './components/PassAndPlayOverlay';
 import { PracticeSandbox } from './components/PracticeSandbox';
 import { TutorialModal } from './components/TutorialModal';
 import { Footer } from './components/Footer';
-
 import { ScoreboardModal } from './components/ScoreboardModal';
-import { RoomMultiplayerModal, RoomState } from './components/RoomMultiplayerModal';
+import { SingleplayerGraphic } from './components/SingleplayerGraphic';
+import { PassAndPlayGraphic } from './components/PassAndPlayGraphic';
 
 import {
   Bot,
@@ -43,12 +44,11 @@ import {
   VolumeX,
   AlertCircle,
   Calculator,
-  Globe,
-  Share2,
-  Check,
-  QrCode,
+  Zap,
+  Brain,
+  ChevronRight,
+  ShieldAlert,
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 
 export default function App() {
   // Game Setup State
@@ -75,16 +75,11 @@ export default function App() {
   const [currentGameRound, setCurrentGameRound] = useState<number>(1);
   const [comboBurstTrigger, setComboBurstTrigger] = useState<number>(0);
 
-  // Room Code Online Multiplayer State
-  const [activeRoomCode, setActiveRoomCode] = useState<string | null>(null);
-  const [myRoomPlayerId, setMyRoomPlayerId] = useState<string | null>(null);
-
   // UI Modals & Screens
   const [isComboModalOpen, setIsComboModalOpen] = useState<boolean>(false);
   const [isPassScreenOpen, setIsPassScreenOpen] = useState<boolean>(false);
   const [isPracticeOpen, setIsPracticeOpen] = useState<boolean>(false);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState<boolean>(false);
-  const [isRoomMultiplayerOpen, setIsRoomMultiplayerOpen] = useState<boolean>(false);
   const [isGuruHintOpen, setIsGuruHintOpen] = useState<boolean>(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [guruHintText, setGuruHintText] = useState<string>('');
@@ -95,113 +90,6 @@ export default function App() {
   } | null>(null);
 
   const isAITurnRef = useRef<boolean>(false);
-
-  const [copiedRoomLink, setCopiedRoomLink] = useState<boolean>(false);
-
-  const handleCopyRoomLink = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    const shareUrl = activeRoomCode
-      ? `${window.location.origin}${window.location.pathname}?join=${activeRoomCode}`
-      : `${window.location.origin}${window.location.pathname}`;
-
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setCopiedRoomLink(true);
-      setNotification({
-        message: activeRoomCode
-          ? `Link Ruang (${activeRoomCode}) tersalin ke clipboard! Bagikan ke teman.`
-          : 'Link aplikasi tersalin ke clipboard! Bagikan ke teman untuk bergabung.',
-        type: 'success',
-      });
-      setTimeout(() => setCopiedRoomLink(false), 2200);
-    }).catch(() => {
-      setNotification({
-        message: 'Gagal menyalin link.',
-        type: 'error',
-      });
-    });
-  };
-
-  // Check URL query parameters for auto-joining room code
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const codeFromUrl = params.get('join') || params.get('room');
-      if (codeFromUrl) {
-        setIsRoomMultiplayerOpen(true);
-      }
-    }
-  }, []);
-
-  // Real-Time Room Code Sync Polling
-  useEffect(() => {
-    if (!activeRoomCode) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/rooms/${activeRoomCode}`);
-        const data = await res.json();
-        if (data.success && data.roomState) {
-          const room: RoomState = data.roomState;
-          setPlayers(room.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            isAI: p.isAI,
-            hand: p.hand,
-            score: p.score,
-            combosCount: p.combosCount,
-            isMathOCalled: p.isMathOCalled,
-            avatar: p.avatar,
-            colorTheme: p.colorTheme,
-          })));
-          setDeck(room.deck);
-          setActiveTargetCard(room.activeTargetCard);
-          setActivePlayerIndex(room.activePlayerIndex);
-          setDirection(room.direction);
-          setHistory(room.history);
-          if (room.winner) {
-            setWinner({
-              id: room.winner.id,
-              name: room.winner.name,
-              isAI: room.winner.isAI,
-              hand: room.winner.hand,
-              isMathOCalled: room.winner.isMathOCalled,
-              avatar: room.winner.avatar,
-              colorTheme: room.winner.colorTheme,
-            });
-          }
-        }
-      } catch (err) {
-        // Silently ignore transient network errors during polling
-        // to prevent console.error spam when dev server restarts
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeRoomCode]);
-
-  // Handle connection to a Room Code session
-  const handleRoomConnected = (roomState: RoomState, playerId: string) => {
-    setActiveRoomCode(roomState.code);
-    setMyRoomPlayerId(playerId);
-    setGameMode('multiplayer');
-    setPlayers(roomState.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      isAI: p.isAI,
-      hand: p.hand,
-      score: p.score,
-      combosCount: p.combosCount,
-      isMathOCalled: p.isMathOCalled,
-      avatar: p.avatar,
-      colorTheme: p.colorTheme,
-    })));
-    setDeck(roomState.deck);
-    setActiveTargetCard(roomState.activeTargetCard);
-    setActivePlayerIndex(roomState.activePlayerIndex);
-    setDirection(roomState.direction);
-    setHistory(roomState.history);
-    showBanner(`Terhubung ke Kode Ruang [${roomState.code}]!`, 'success');
-  };
 
   // Show temporary banner notification
   const showBanner = (
@@ -332,31 +220,6 @@ export default function App() {
   const handlePlaySingleCard = async (card: Card) => {
     if (!activeTargetCard) return;
 
-    if (activeRoomCode && myRoomPlayerId) {
-      // Room Code Online Multiplayer
-      try {
-        const res = await fetch(`/api/rooms/${activeRoomCode}/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            playerId: myRoomPlayerId,
-            actionType: 'single',
-            card,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          sounds.playPenalty();
-          showBanner(data.error || 'Aksi tidak diperbolehkan.', 'error');
-        } else {
-          sounds.playCard();
-        }
-      } catch (err) {
-        showBanner('Gagal menghubungkan ke server room.', 'error');
-      }
-      return;
-    }
-
     const currentPlayer = players[activePlayerIndex];
 
     if (!isValidSinglePlay(card, activeTargetCard)) {
@@ -462,38 +325,6 @@ export default function App() {
     errorMessage?: string
   ) => {
     if (!activeTargetCard) return;
-
-    if (activeRoomCode && myRoomPlayerId) {
-      // Online Room Mode
-      try {
-        const res = await fetch(`/api/rooms/${activeRoomCode}/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            playerId: myRoomPlayerId,
-            actionType: 'combo',
-            comboCards: selectedCards,
-            comboOperators: operators,
-            isComboCorrect: isCorrect,
-            comboErrorMsg: errorMessage,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          sounds.playPenalty();
-          showBanner(data.error || 'Aksi Combo gagal.', 'error');
-        } else if (isCorrect) {
-          sounds.playComboSuccess();
-          setComboBurstTrigger(prev => prev + 1);
-          triggerComboParticles('active-target-card-container');
-        } else {
-          sounds.playPenalty();
-        }
-      } catch (err) {
-        showBanner('Gagal mengirimkan Combo ke room.', 'error');
-      }
-      return;
-    }
 
     const currentPlayer = players[activePlayerIndex];
     const targetVal =
@@ -609,23 +440,6 @@ export default function App() {
 
   // Draw Card
   const handleDrawCard = async () => {
-    if (activeRoomCode && myRoomPlayerId) {
-      try {
-        await fetch(`/api/rooms/${activeRoomCode}/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            playerId: myRoomPlayerId,
-            actionType: 'draw',
-          }),
-        });
-        sounds.playDrawCard();
-      } catch (err) {
-        showBanner('Gagal mengambil kartu.', 'error');
-      }
-      return;
-    }
-
     sounds.playDrawCard();
     let currentDeck = [...deck];
 
@@ -770,12 +584,9 @@ export default function App() {
           onToggleSound={() => setSoundEnabled(!soundEnabled)}
           onResetGame={() => {
             setGameMode('menu');
-            setActiveRoomCode(null);
           }}
           onOpenPractice={() => setIsPracticeOpen(true)}
           onOpenScoreboard={() => setIsScoreboardOpen(true)}
-          onOpenRoomMultiplayer={() => setIsRoomMultiplayerOpen(true)}
-          activeRoomCode={activeRoomCode}
         />
       )}
 
@@ -809,204 +620,154 @@ export default function App() {
 
         {/* MODE SELECTOR MAIN MENU SCREEN */}
         {gameMode === 'menu' && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-8 px-4 relative overflow-hidden">
-            {/* Massive Background Glows for Marketing Impact */}
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-6 px-3 sm:px-4 relative overflow-hidden">
+            {/* Background Glow Effects */}
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[100px] pointer-events-none" />
 
-            {/* Hero Card Container */}
-            <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 sm:p-12 max-w-3xl w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
-              {/* Inner accent gradients */}
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50" />
-              <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-50" />
-
-              <div className="flex justify-center items-center mb-6">
-                <div className="relative group cursor-pointer">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-3xl blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                  <div className="relative w-24 h-24 bg-slate-900 ring-1 ring-white/20 rounded-3xl flex items-center justify-center shadow-2xl overflow-hidden gap-1">
-                    <span className="text-5xl font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] tracking-tighter">√</span>
-                    <span className="text-5xl font-black text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] tracking-tighter">π</span>
-                  </div>
+            {/* Hero Main Wrapper */}
+            <div className="max-w-5xl w-full mx-auto relative z-10">
+              {/* Header Title Banner */}
+              <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl relative overflow-hidden text-center">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60" />
+                
+                <div className="flex justify-center items-center mb-4">
+                  <motion.div
+                    whileHover={{ scale: 1.05, rotate: 3 }}
+                    className="relative w-20 h-20 bg-slate-950 ring-2 ring-purple-500/40 rounded-3xl flex items-center justify-center shadow-2xl overflow-hidden gap-1"
+                  >
+                    <span className="text-4xl font-black text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.7)] tracking-tighter">√</span>
+                    <span className="text-4xl font-black text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)] tracking-tighter">π</span>
+                  </motion.div>
                 </div>
+
+                <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter mb-2 leading-tight flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+                  <span>NUMERIX</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-400 drop-shadow-sm">
+                    MATH CLASH
+                  </span>
+                </h1>
+                <p className="text-xs sm:text-base text-slate-300 font-medium leading-relaxed max-w-2xl mx-auto">
+                  Adu cepat perhitungan, racik <span className="font-bold text-cyan-300">Combo Matematika</span>, dan jadilah juara di arena strategi angka oleh <span className="font-extrabold text-amber-400">Pak GuruAI</span>!
+                </p>
               </div>
 
-              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter mb-4 leading-tight flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-                <span>NUMERIX</span>
-                <span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">MATH CLASH</span>
-              </h1>
-              <p className="text-sm sm:text-lg text-slate-300 mb-10 font-medium leading-relaxed max-w-xl mx-auto">
-                Lebih dari sekadar permainan kartu. Adu kecepatan otak, rangkai <span className="font-bold text-cyan-400">Combo Matematika</span> mematikan, dan jadilah sang juara di arena belajar paling epik karya <span className="font-extrabold text-amber-400 tracking-wide">Pak GuruAI</span>.
-              </p>
-
-              {/* Game Mode Selection Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+              {/* 2 Interactive Animated Game Mode Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-left">
                 
-                {/* Room Code Online Multiplayer */}
+                {/* 1. Singleplayer Mode Card */}
                 <div
-                  onClick={() => setIsRoomMultiplayerOpen(true)}
-                  id="btn-mode-room-code"
-                  className="bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl font-extrabold text-left transition-all duration-300 shadow-lg border border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] flex flex-col justify-between cursor-pointer group active:scale-98 relative overflow-hidden"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setIsRoomMultiplayerOpen(true);
-                    }
-                  }}
+                  id="btn-mode-ai"
+                  className="bg-slate-900/80 backdrop-blur-xl border border-purple-500/40 hover:border-purple-400 rounded-3xl p-5 sm:p-6 shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:shadow-[0_0_40px_rgba(168,85,247,0.25)] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500 -mr-10 -mt-10"></div>
-                  <div className="flex items-center justify-between mb-3 relative z-10">
-                    <div className="p-2 bg-cyan-500/20 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                      <Globe className="w-6 h-6 text-cyan-300" />
-                    </div>
-                    <span className="text-[9px] bg-cyan-950 text-cyan-300 px-2.5 py-1 rounded-full border border-cyan-500/30 font-mono font-bold tracking-widest shadow-inner">
-                      MULTIPLAYER
-                    </span>
-                  </div>
-                  <div className="relative z-10 mb-2">
-                    <h3 className="text-base font-black text-white mb-1 group-hover:text-cyan-100 transition-colors">Main Sejaringan</h3>
-                    <p className="text-[10px] text-cyan-200/70 font-medium leading-tight">
-                      {activeRoomCode ? `Aktif di Ruang #${activeRoomCode}` : 'Buat ruang & tantang teman via kode 4-digit!'}
-                    </p>
-                  </div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-500 -mr-10 -mt-10" />
 
-                  {/* QR Code Element */}
-                  <div className="relative z-10 my-2 bg-slate-900/90 border border-cyan-500/30 p-2 rounded-xl flex items-center justify-between gap-2.5 group-hover:border-cyan-400/60 transition-colors shadow-inner">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-300">
-                        <QrCode className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span>QR Code Join</span>
+                  <div>
+                    {/* Header Badge */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-purple-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                          <Bot className="w-5 h-5 text-purple-300" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-white group-hover:text-purple-200 transition-colors">
+                            Singleplayer AI
+                          </h3>
+                          <p className="text-[11px] text-purple-200/70 font-medium">
+                            Lawan Pak GuruAI Bot
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-[9px] text-slate-400 leading-tight mt-0.5">
-                        Scan dengan kamera HP teman untuk gabung
+                      <span className="text-[9px] font-mono font-bold text-purple-300 bg-purple-950/90 border border-purple-500/40 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        MODERAT / SOLO
                       </span>
                     </div>
-                    <div className="bg-white p-1 rounded-lg shadow-md shrink-0 transition-transform group-hover:scale-105">
-                      <QRCodeSVG
-                        value={
-                          typeof window !== 'undefined'
-                            ? activeRoomCode
-                              ? `${window.location.origin}${window.location.pathname}?join=${activeRoomCode}`
-                              : `${window.location.origin}${window.location.pathname}`
-                            : ''
-                        }
-                        size={52}
-                        bgColor="#ffffff"
-                        fgColor="#0f172a"
-                        level="M"
-                      />
-                    </div>
+
+                    {/* Animated Visual Component */}
+                    <SingleplayerGraphic
+                      aiLevel={aiLevel}
+                      onSelectAiLevel={setAiLevel}
+                    />
                   </div>
 
-                  {/* Tombol Salin Link Ruang */}
-                  <div className="relative z-10 pt-2.5 border-t border-cyan-500/20 flex items-center">
-                    <button
-                      type="button"
-                      onClick={handleCopyRoomLink}
-                      id="btn-copy-room-link"
-                      className="w-full py-1.5 px-3 bg-cyan-500/20 hover:bg-cyan-500/35 active:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                      title="Salin link ruang ke clipboard untuk dibagikan"
-                    >
-                      {copiedRoomLink ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-300 font-extrabold">Link Ruang Tersalin!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="w-3.5 h-3.5 text-cyan-300" />
-                          <span>Salin Link Ruang</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  {/* Play Action Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => startNewGame('ai')}
+                    className="w-full mt-3 py-3 px-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg border border-purple-400/40 flex items-center justify-center gap-2 cursor-pointer transition"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>MULAI TANTANGAN AI</span>
+                    <ChevronRight className="w-4 h-4 text-purple-200" />
+                  </motion.button>
                 </div>
 
-                {/* Singleplayer AI */}
-                <button
-                  onClick={() => startNewGame('ai')}
-                  id="btn-mode-ai"
-                  className="bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl font-extrabold text-left transition-all duration-300 shadow-lg border border-purple-500/30 hover:border-purple-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] flex flex-col justify-between cursor-pointer group active:scale-95 relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-500 -mr-10 -mt-10"></div>
-                  <div className="flex items-center justify-between mb-4 relative z-10">
-                    <div className="p-2 bg-purple-500/20 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                      <Bot className="w-6 h-6 text-purple-300" />
-                    </div>
-                    <span className="text-[9px] bg-purple-950 text-purple-300 px-2.5 py-1 rounded-full border border-purple-500/30 font-mono font-bold tracking-widest shadow-inner">
-                      SINGLEPLAYER
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <h3 className="text-base font-black text-white mb-1 group-hover:text-purple-100 transition-colors">Lawan AI Bot</h3>
-                    <p className="text-[10px] text-purple-200/70 font-medium leading-tight">
-                      Uji kecepatanmu melawan sistem Pak GuruAI.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Pass and Play Local */}
-                <button
-                  onClick={() => startNewGame('multiplayer')}
+                {/* 2. Pass & Play Mode Card */}
+                <div
                   id="btn-mode-multiplayer"
-                  className="bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl font-extrabold text-left transition-all duration-300 shadow-lg border border-emerald-500/30 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.2)] flex flex-col justify-between cursor-pointer group active:scale-95 relative overflow-hidden"
+                  className="bg-slate-900/80 backdrop-blur-xl border border-emerald-500/40 hover:border-emerald-400 rounded-3xl p-5 sm:p-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] hover:shadow-[0_0_40px_rgba(16,185,129,0.25)] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500 -mr-10 -mt-10"></div>
-                  <div className="flex items-center justify-between mb-4 relative z-10">
-                    <div className="p-2 bg-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                      <Users className="w-6 h-6 text-emerald-300" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500 -mr-10 -mt-10" />
+
+                  <div>
+                    {/* Header Badge */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                          <Users className="w-5 h-5 text-emerald-300" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-white group-hover:text-emerald-200 transition-colors">
+                            Pass & Play
+                          </h3>
+                          <p className="text-[11px] text-emerald-200/70 font-medium">
+                            Duel Lokal 1 Perangkat
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/90 border border-emerald-500/40 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        LOKAL 2-4 PEMAIN
+                      </span>
                     </div>
-                    <span className="text-[9px] bg-emerald-950 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30 font-mono font-bold tracking-widest shadow-inner">
-                      PASS & PLAY
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <h3 className="text-base font-black text-white mb-1 group-hover:text-emerald-100 transition-colors">Satu Perangkat</h3>
-                    <p className="text-[10px] text-emerald-200/70 font-medium leading-tight">
-                      Bergantian di 1 Perangkat ({numPlayers} Pemain)
-                    </p>
-                  </div>
-                </button>
 
-              </div>
+                    {/* Animated Visual Component */}
+                    <PassAndPlayGraphic
+                      numPlayers={numPlayers}
+                      onSelectNumPlayers={setNumPlayers}
+                    />
+                  </div>
 
-              {/* Player Count Config for Multiplayer */}
-              <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left mb-6">
-                <label className="text-xs font-bold text-slate-300 block mb-2">
-                  Jumlah Pemain (Khusus Mode Multiplayer):
-                </label>
-                <div className="flex gap-2">
-                  {[2, 3, 4].map(count => (
-                    <button
-                      key={count}
-                      onClick={() => setNumPlayers(count)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
-                        numPlayers === count
-                          ? 'bg-amber-400 text-slate-950 shadow-md'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
-                    >
-                      {count} Pemain
-                    </button>
-                  ))}
+                  {/* Play Action Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => startNewGame('multiplayer')}
+                    className="w-full mt-3 py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg border border-emerald-400/40 flex items-center justify-center gap-2 cursor-pointer transition"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>MULAI DUEL LOKAL ({numPlayers} PEMAIN)</span>
+                    <ChevronRight className="w-4 h-4 text-emerald-200" />
+                  </motion.button>
                 </div>
+
               </div>
 
-              {/* Additional Action Links */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
+              {/* Bottom Quick Links */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={() => setIsTutorialOpen(true)}
-                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 rounded-full transition flex items-center gap-2 cursor-pointer"
+                  className="text-xs font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2.5 rounded-full transition border border-cyan-500/30 flex items-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <HelpCircle className="w-4 h-4 text-cyan-400" />
                   <span>Tutorial Cara Bermain</span>
                 </button>
-                
+
                 <button
                   onClick={() => setIsPracticeOpen(true)}
-                  className="text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-full transition flex items-center gap-2 cursor-pointer"
+                  className="text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 rounded-full transition border border-amber-500/30 flex items-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <Calculator className="w-4 h-4" />
+                  <Calculator className="w-4 h-4 text-amber-400" />
                   <span>Mode Latihan Combo Bebas</span>
                 </button>
               </div>
@@ -1090,14 +851,66 @@ export default function App() {
               </div>
             </div>
 
-            {/* Active Player Hand Area */}
-            <PlayerHand
-              player={activePlayer}
-              activeTargetCard={activeTargetCard}
-              isCurrentTurn={!activePlayer.isAI}
-              onPlaySingleCard={handlePlaySingleCard}
-              onCallMathO={handleCallMathO}
-            />
+            {/* Animated Turn Change Banner Badge */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`turn-alert-${activePlayerIndex}-${activePlayer.id}`}
+                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className="flex items-center justify-between bg-slate-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-cyan-500/30 shadow-lg text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl p-1 bg-slate-800 rounded-xl border border-slate-700 shadow-xs">
+                    {activePlayer.avatar}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-1.5 font-black text-white">
+                      <span>Giliran Aktif:</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-xs font-black ${activePlayer.colorTheme}`}>
+                        {activePlayer.name}
+                      </span>
+                      {activePlayer.isAI && (
+                        <span className="text-[10px] bg-purple-950 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 rounded font-mono font-bold animate-pulse">
+                          🤖 BOT AI
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      {activePlayer.isAI
+                        ? 'Pak GuruAI sedang menghitung strategi angka...'
+                        : 'Mainkan kartu yang sesuai atau rangkai Combo Matematika!'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-1.5 font-extrabold text-amber-400 bg-amber-950/70 px-3 py-1 rounded-xl border border-amber-500/30">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+                  <span>{activePlayer.hand.length} Kartu</span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Active Player Hand Area with Animated Slide & Scale Transition */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`player-hand-wrapper-${activePlayer.id}-${activePlayerIndex}`}
+                initial={{ opacity: 0, scale: 0.94, x: 25 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.94, x: -25 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+                className="w-full"
+              >
+                <PlayerHand
+                  player={activePlayer}
+                  activeTargetCard={activeTargetCard}
+                  isCurrentTurn={!activePlayer.isAI}
+                  onPlaySingleCard={handlePlaySingleCard}
+                  onCallMathO={handleCallMathO}
+                />
+              </motion.div>
+            </AnimatePresence>
 
             {/* Recent History Feed */}
             <HistoryLog history={history} />
@@ -1154,12 +967,6 @@ export default function App() {
           onClose={() => setIsScoreboardOpen(false)}
           players={players}
           currentGameRound={currentGameRound}
-        />
-
-        <RoomMultiplayerModal
-          isOpen={isRoomMultiplayerOpen}
-          onClose={() => setIsRoomMultiplayerOpen(false)}
-          onRoomConnected={handleRoomConnected}
         />
 
         <ComboBuilderModal

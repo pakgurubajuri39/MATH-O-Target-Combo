@@ -1,6 +1,7 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { GameMode } from '../types';
-import { Volume2, VolumeX, RotateCcw, Calculator, Users, Bot, Layers, Trophy, Globe } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Calculator, Users, Bot, Layers, Trophy } from 'lucide-react';
 
 interface GameHeaderProps {
   mode: GameMode;
@@ -12,8 +13,6 @@ interface GameHeaderProps {
   onResetGame: () => void;
   onOpenPractice: () => void;
   onOpenScoreboard: () => void;
-  onOpenRoomMultiplayer: () => void;
-  activeRoomCode?: string | null;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
@@ -26,8 +25,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   onResetGame,
   onOpenPractice,
   onOpenScoreboard,
-  onOpenRoomMultiplayer,
-  activeRoomCode,
 }) => {
   return (
     <header id="game-header" className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-3 sm:px-6 py-2.5 shadow-xl">
@@ -50,11 +47,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
               <span className="text-[10px] font-black bg-gradient-to-r from-cyan-400 to-blue-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                 Math Clash
               </span>
-              {activeRoomCode && (
-                <span className="text-[10px] font-mono font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full animate-pulse">
-                  KODE: {activeRoomCode}
-                </span>
-              )}
             </div>
             <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
               Game Kartu Matematika Edukatif
@@ -70,11 +62,22 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             ) : (
               <Users className="w-4 h-4 text-cyan-400" />
             )}
-            <span className="text-xs font-bold text-slate-300">
-              Giliran:{' '}
-              <span className={`font-black ${isAITurn ? 'text-purple-400 animate-pulse' : 'text-emerald-400'}`}>
-                {currentTurnName}
-              </span>
+            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <span>Giliran:</span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={currentTurnName}
+                  initial={{ opacity: 0, y: -10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  className={`font-black inline-block ${
+                    isAITurn ? 'text-purple-400 animate-pulse' : 'text-emerald-400'
+                  }`}
+                >
+                  {currentTurnName}
+                </motion.span>
+              </AnimatePresence>
             </span>
           </div>
 
@@ -89,17 +92,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         {/* Right Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           
-          {/* Room Multiplayer Button */}
-          <button
-            onClick={onOpenRoomMultiplayer}
-            id="btn-room-multiplayer"
-            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-cyan-200 border border-cyan-500/40 rounded-xl text-xs font-extrabold transition cursor-pointer shadow-xs active:scale-95"
-            title="Main Multiplayer via Kode Ruang"
-          >
-            <Globe className="w-3.5 h-3.5 text-cyan-300" />
-            <span className="hidden sm:inline">Kode Ruang</span>
-          </button>
-
           {/* Scoreboard Button */}
           <button
             onClick={onOpenScoreboard}

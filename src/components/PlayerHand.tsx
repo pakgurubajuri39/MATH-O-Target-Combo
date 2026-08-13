@@ -1,8 +1,9 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Card, Player } from '../types';
 import { CardView } from './CardView';
 import { isValidSinglePlay } from '../utils/cardUtils';
-import { Volume2, Sparkles, User, ShieldAlert } from 'lucide-react';
+import { Volume2, Sparkles, User, ShieldAlert, Zap } from 'lucide-react';
 
 interface PlayerHandProps {
   player: Player;
@@ -24,11 +25,31 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
   onSelectCard,
 }) => {
   return (
-    <div id={`player-hand-${player.id}`} className="bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-200 shadow-xl w-full">
+    <motion.div
+      id={`player-hand-${player.id}`}
+      initial={{ opacity: 0, scale: 0.95, y: 15 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -15 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+      className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 border transition-all duration-300 shadow-xl w-full relative overflow-hidden ${
+        isCurrentTurn
+          ? 'border-emerald-400 ring-2 ring-emerald-400/30 shadow-[0_0_25px_rgba(16,185,129,0.15)]'
+          : 'border-slate-200 opacity-90'
+      }`}
+    >
+      {/* Top Active Turn Pulse Accent */}
+      {isCurrentTurn && (
+        <motion.div
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 rounded-t-2xl"
+        />
+      )}
+
       {/* Player Hand Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <div className={`p-2 rounded-xl text-white font-extrabold text-sm ${player.colorTheme}`}>
+          <div className={`p-2 rounded-xl text-white font-extrabold text-sm ${player.colorTheme} shadow-md`}>
             {player.avatar}
           </div>
           <div>
@@ -36,6 +57,12 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
               <h3 className="font-extrabold text-slate-800 text-sm sm:text-base">
                 {player.name}
               </h3>
+              {isCurrentTurn && (
+                <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  GILIRAN AKTIF
+                </span>
+              )}
               {player.isAI && (
                 <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200">
                   BOT AI
@@ -81,34 +108,40 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
             Kartu habis! Pemenang! 🎉
           </div>
         ) : (
-          player.hand.map((card, idx) => {
-            const isPlayable = isValidSinglePlay(card, activeTargetCard);
-            const isSelected = selectedCardId === card.id;
+          <AnimatePresence>
+            {player.hand.map((card, idx) => {
+              const isPlayable = isValidSinglePlay(card, activeTargetCard);
+              const isSelected = selectedCardId === card.id;
 
-            return (
-              <div
-                key={`${card.id}_${idx}`}
-                className={`transform transition duration-200 ${
-                  isCurrentTurn && isPlayable ? 'hover:-translate-y-2' : ''
-                }`}
-              >
-                <CardView
-                  card={card}
-                  size="md"
-                  isSelected={isSelected}
-                  isPlayable={isPlayable}
-                  disabled={!isCurrentTurn}
-                  onClick={() => {
-                    if (!isCurrentTurn) return;
-                    if (onSelectCard) onSelectCard(card);
-                    if (isPlayable) {
-                      onPlaySingleCard(card);
-                    }
-                  }}
-                />
-              </div>
-            );
-          })
+              return (
+                <motion.div
+                  key={`${card.id}_${idx}`}
+                  initial={{ opacity: 0, scale: 0.8, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 25, delay: idx * 0.03 }}
+                  className={`transform transition duration-200 ${
+                    isCurrentTurn && isPlayable ? 'hover:-translate-y-2' : ''
+                  }`}
+                >
+                  <CardView
+                    card={card}
+                    size="md"
+                    isSelected={isSelected}
+                    isPlayable={isPlayable}
+                    disabled={!isCurrentTurn}
+                    onClick={() => {
+                      if (!isCurrentTurn) return;
+                      if (onSelectCard) onSelectCard(card);
+                      if (isPlayable) {
+                        onPlaySingleCard(card);
+                      }
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         )}
       </div>
 
@@ -118,6 +151,6 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           💡 <span className="font-semibold text-slate-700">Petunjuk:</span> Klik kartu dengan warna atau angka sama untuk main Single, atau klik tombol <span className="font-bold text-emerald-700">"Buat Combo Matematika"</span> untuk menggabungkan kartu!
         </p>
       )}
-    </div>
+    </motion.div>
   );
 };
